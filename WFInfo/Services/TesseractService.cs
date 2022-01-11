@@ -46,7 +46,23 @@ namespace WFInfo
         /// </summary>
         public TesseractEngine[] Engines { get; } = new TesseractEngine[4];
 
-        private static string Locale => Settings.locale;
+        private static string Locale
+        {
+            get {
+                string tesseractLanguage;
+                switch (Settings.locale)
+                {
+                    case "zh-hans":
+                        tesseractLanguage = "chi_sim";
+                        break;
+                    default:
+                        tesseractLanguage = Settings.locale;
+                        break;
+                }
+                return tesseractLanguage; 
+            }
+        }
+
         private static string AppdataTessdataFolder => CustomEntrypoint.appdata_tessdata_folder;
         private static readonly string ApplicationDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\WFInfo";
         private static readonly string DataPath = ApplicationDirectory + @"\tessdata";
@@ -92,7 +108,8 @@ namespace WFInfo
             JObject traineddata_checksums = new JObject
             {
                 {"en", "7af2ad02d11702c7092a5f8dd044d52f"},
-                {"ko", "c776744205668b7e76b190cc648765da"}
+                {"ko", "c776744205668b7e76b190cc648765da"},
+                {"chi_sim", "6965cb3213edd961cb16264e2ea45f5c"},
             };
 
             // get trainned data

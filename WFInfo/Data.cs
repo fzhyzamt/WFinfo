@@ -171,7 +171,6 @@ namespace WFInfo
                     var respTask = Task.Run(() => response.Content.ReadAsStringAsync());
                     respTask.Wait();
                     var body = respTask.Result;
-                    var payload = JsonConvert.DeserializeObject<JObject>(body);
                     Debug.WriteLine(body);
 
                     obj = JsonConvert.DeserializeObject<JObject>(body);
@@ -179,8 +178,9 @@ namespace WFInfo
                     foreach (var item in items)
                     {
                         string name = item["url_name"].ToString();
-                        if (name.Contains("prime") && marketItems.ContainsKey(item["id"].ToString()))
-                            marketItems[item["id"].ToString()] = marketItems[item["id"].ToString()] + "|" + item["item_name"];
+                        string id = item["id"].ToString();
+                        if (name.Contains("prime") && marketItems.ContainsKey(id))
+                            marketItems[id] = marketItems[id] + "|" + item["item_name"];
                     }
                 }
             }
@@ -585,6 +585,8 @@ namespace WFInfo
                 case "ko":
                     // for korean
                     return LevenshteinDistanceKorean(s, t);
+                case "zh-hans":
+                    return LevenshteinDistanceSimpleChinese(s, t);
                 default:
                     return LevenshteinDistanceDefault(s, t);
             }
@@ -649,6 +651,14 @@ namespace WFInfo
         }
         public string getLocaleNameData(string s)
         {
+            if (Settings.locale == "zh-hans")
+            {
+                if (s == "Forma Blueprint")
+                {
+                    // not in market items
+                    return "Forma 蓝图";
+                }
+            }
             bool saveDatabases = false;
             string localeName = "";
             foreach (var marketItem in marketItems)
@@ -757,6 +767,69 @@ namespace WFInfo
                 }
             }
             return false;
+        }
+
+        private int LevenshteinDistanceSimpleChinese(string s, string t)
+        {
+            s = getLocaleNameData(s);
+
+            s = " " + s.Replace(" ", "");
+            t = " " + t.Replace(" ", "");
+
+            int n = s.Length;
+            int m = t.Length;
+            int[,] d = new int[n + 1, m + 1];
+
+            if (n == 0 || m == 0)
+                return n + m;
+            int i, j;
+
+            for (i = 1; i < s.Length; i++) d[i, 0] = i * 9;
+            for (j = 1; j < t.Length; j++) d[0, j] = j * 9;
+
+            int s1, s2;
+
+            for (i = 1; i < s.Length; i++)
+            {
+                for (j = 1; j < t.Length; j++)
+                {
+                    s1 = 0;
+                    s2 = 0;
+
+                    char cha = s[i];
+                    char chb = t[j];
+                    int[] a = new int[3];
+                    int[] b = new int[3];
+                    a[0] = (((cha - 0xAC00) - (cha - 0xAC00) % 28) / 28) / 21;
+                    a[1] = (((cha - 0xAC00) - (cha - 0xAC00) % 28) / 28) % 21;
+                    a[2] = (cha - 0xAC00) % 28;
+
+                    b[0] = (((chb - 0xAC00) - (chb - 0xAC00) % 28) / 28) / 21;
+                    b[1] = (((chb - 0xAC00) - (chb - 0xAC00) % 28) / 28) % 21;
+                    b[2] = (chb - 0xAC00) % 28;
+
+                    if (a[0] != b[0] && a[1] != b[1] && a[2] != b[2])
+                    {
+                        s1 = 9;
+                    }
+                    else
+                    {
+                        for (int k = 0; k < 3; k++)
+                        {
+                            if (a[k] != b[k])
+                            {
+                                s1 += 1;
+                            }
+                        }
+                        s1 *= 3;
+                        s2 *= 2;
+                    }
+
+                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 9, d[i, j - 1] + 9), d[i - 1, j - 1] + s1 + s2);
+                }
+            }
+
+            return d[s.Length - 1, t.Length - 1];
         }
 
         public int LevenshteinDistanceSecond(string str1, string str2, int limit = -1)

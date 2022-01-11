@@ -114,7 +114,21 @@ namespace WFInfo
         // Screen / Resolution Scaling - Used to adjust pixel values to each person's monitor
         public static double screenScaling;
 
-        public static Regex RE = new Regex("[^a-z가-힣]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        public static Regex RE_DEFAULT = new Regex("[^a-z가-힣]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        public static Regex RE_ZH_HANS = new Regex(@"[^a-z\u4e00-\u9fa5]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        public static Regex RE
+        {
+            get
+            {
+                switch (Settings.locale)
+                {
+                    case "zh-hans":
+                        return RE_ZH_HANS;
+                    default:
+                        return RE_DEFAULT;
+                }
+            }
+        }
 
         // Pixel measurements for reward screen @ 1920 x 1080 with 100% scale https://docs.google.com/drawings/d/1Qgs7FU2w1qzezMK-G1u9gMTsQZnDKYTEU36UPakNRJQ/edit
         public const int pixleRewardWidth = 968;
@@ -785,7 +799,10 @@ namespace WFInfo
         /// <returns>If part name is close enough to valid to actually process</returns>
         internal static bool PartNameValid (string partName)
         {
-            if ((partName.Length < 13 && Settings.locale == "en") || (partName.Replace(" ", "").Length < 6 && Settings.locale == "ko")) // if part name is smaller than "Bo prime handle" skip current part 
+            // if part name is smaller than "Bo prime handle" skip current part 
+            if ((Settings.locale == "en" && partName.Length < 13)
+                || (Settings.locale == "ko" && partName.Replace(" ", "").Length < 6)
+                || (Settings.locale == "zh-hans" && partName.Length < 10))
                 //TODO: Add a min character for other locale here.
                 return false;
             return true;
